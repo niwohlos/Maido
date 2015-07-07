@@ -7,8 +7,12 @@ bot:
   #ssl: yes
   #port: 6697
   channels:
-    - '#niwohlos'
     #- '#MaidoTest'
+    - '#niwohlos'
+
+# Ignore commands sent by these nicks. Write these in lowercase, or it won't work!
+ignored_nicks:
+  - ytpeek
 
 domain:
   # Don't ping these domains. Auto-ignored are "localhost" and IP addresses.

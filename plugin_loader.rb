@@ -25,6 +25,12 @@ class PluginLoader
   end
   
   ###
+  def self.inject_hook(klass)
+    klass.include HookMethods
+    klass.class_eval{ hook :pre }
+    return klass
+  end
+  
   def self.load_all
     plugins = Dir.glob('plugins/*.rb').map do |file|
       puts "Loading plugin #{file}"
@@ -35,11 +41,19 @@ class PluginLoader
       
       raise "Plugin #{file} does not define class #{class_name} - Broken plugin!" unless Kernel.const_defined? class_name
       
-      Kernel.const_get(class_name)
+      self.inject_hook Kernel.const_get(class_name)
     end
     
     # Inject self
     return [ PluginLoader ] + plugins
+  end
+  
+  private
+  
+  module HookMethods
+    def hook(m)
+      return !($config['ignored_nicks'].include? m.user.nick.downcase)
+    end
   end
   
 end
