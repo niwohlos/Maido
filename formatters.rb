@@ -5,7 +5,7 @@ end
 
 # Matches og['site_name'].downcase for the default matcher
 ignore_description = [ :imgur, :voat ]
-ignore_image = [ :reddit, :voat ]
+ignore_image = [ :reddit, :voat, :youtube, :facebook ]
 
 # All formatters receive the following arguments
 # (... , plain response body, formatter descriptor, original url)

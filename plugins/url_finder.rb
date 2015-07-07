@@ -96,7 +96,7 @@ class UrlFinder
     case descriptor[:datatype]
     when :html
       parser = Nokogiri::HTML response
-      args = [ read_ogp_data(parser), read_title(parser), parser ]
+      args = [ read_ogp_data(parser), read_title(parser, original_url), parser ]
       
     when :json
       args = [ JSON.parse(response) ]
@@ -145,7 +145,7 @@ class UrlFinder
       end
       
       type = 'Unbekannt' if type.nil? || type.empty?
-      return "MIME-Typ #{type}" unless type =~ /#{descriptor[:datatype]}/i
+      return nil unless type =~ /#{descriptor[:datatype]}/i
     rescue SocketError => err
       return "Eine nicht-existente Domain"
     rescue RuntimeError => err
@@ -166,10 +166,12 @@ class UrlFinder
     return og
   end
   
-  def read_title(parser)
+  def read_title(parser, url)
     tag = parser.css('title')[0]
-    return tag[0].to_s if tag
-    return nil
+    return nil if tag.nil?
+    
+    domain = URI(url).domain # Try to remove trailing service name with other garbage characters before it
+    return tag.children[0].to_s.gsub /[^a-z0-9.]*#{domain}$/i
   end
   
   def find_urls(message)
@@ -190,9 +192,10 @@ class UrlFinder
     
     log "Found urls #{urls.join ','} in message"
     
-    responses = urls.map{ |url| handle_url url }
+    responses = urls.map{ |url| handle_url url }.reject(&:nil?)
     log "Titles: #{responses.join ', '}"
-    m.reply "#{m.user.nick} präsentiert Ihnen heute: #{responses.join ', '}"
+    
+    m.reply "#{m.user.nick} präsentiert Ihnen heute: #{responses.join ', '}" unless responses.empty?
   end
   
 end
