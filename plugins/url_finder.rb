@@ -170,8 +170,9 @@ class UrlFinder
     tag = parser.css('title')[0]
     return nil if tag.nil?
     
-    domain = URI(url).domain # Try to remove trailing service name with other garbage characters before it
-    return tag.children[0].to_s.gsub /[^a-z0-9.]*#{domain}$/i
+    matchers = get_matchers_for_url url # Try to remove trailing service name with other garbage characters before it
+    matchers << matchers[-2].split('.').first
+    return tag.children[0].to_s.gsub /[^a-z0-9.]*#{matchers.map{|m| Regexp.escape m}.join '|'}$/i, ''
   end
   
   def find_urls(message)
