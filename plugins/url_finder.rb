@@ -2,7 +2,9 @@ require 'htmlentities'
 require 'net/http'
 require 'nokogiri'
 require 'cinch'
+require 'json'
 require 'uri'
+require_relative 'lib/domain_rewriter'
 
 class UrlFinder
   include Cinch::Plugin
@@ -11,7 +13,7 @@ class UrlFinder
   
   CLIENT_HEADERS = {
     'User-Agent' => "Maido WebCrawler (Moe Moe Kyun!)",
-    'Accept' => "text/html, text/*"
+    'Accept' => "text/html, text/*, application/json"
   }
   
   listen_to :channel
@@ -20,13 +22,11 @@ class UrlFinder
     super
     
     @formatters = eval open('formatters.rb').read
+    @rewriters = DomainRewriter.many_from_array($config['domain']['rewrite'])
+    @blacklist = $config['domain']['blacklist']
   end
   
-  def is_html_mimetype(type)
-    return (type =~ /\/html/i)
-  end
-  
-  def do_get_request(url)
+  def do_get_request(url, datatype)
     data = ''
     type = nil
     code = 0
@@ -50,7 +50,7 @@ class UrlFinder
         location = response['Location']
         code = response.code.to_i
         
-        break unless is_html_mimetype type
+        break unless type =~ /#{datatype}/i
         
         response.read_body{|body| data << body }
       end
@@ -59,7 +59,7 @@ class UrlFinder
     return [ data, type, code, location ]
   end
   
-  def download_url(url)
+  def download_url(url, datatype)
     data = ''
     type = nil
     code = 300
@@ -68,7 +68,7 @@ class UrlFinder
     #
     counter = 0
     while (code / 100) == 3 && counter < MAX_REDIRECTS
-      data, type, code, location = do_get_request URI(url)
+      data, type, code, location = do_get_request URI(url), datatype
       counter = counter + 1
       
       url = location if location
@@ -89,36 +89,63 @@ class UrlFinder
     matchers.map{|name| @formatters[name] }.reject(&:nil?).first
   end
   
-  def render_title(url, parser)
-    og = read_ogp_data(parser)
-    title = read_title(parser)
+  def render_formatter(descriptor, response, original_url)
+    args = []
     
-    formatter = get_formatter get_matchers_for_url url
+    # 
+    case descriptor[:datatype]
+    when :html
+      parser = Nokogiri::HTML response
+      args = [ read_ogp_data(parser), read_title(parser), parser ]
+      
+    when :json
+      args = [ JSON.parse(response) ]
+      
+    when :text
+      args = [ ]
+      
+    end
+    
+    # Append standard arguments
+    args << response << descriptor << original_url
+    
+    # 
+    formatter = @formatters[descriptor[:formatter]]
+    formatter = get_formatter get_matchers_for_url descriptor[:url] if formatter.nil?
     rendered = nil
     
     begin
-      rendered = formatter.call og, title, parser
+      rendered = formatter.call *args
     rescue StandardError => err
-      error "Failed to format URL #{url.to_s}"
+      error "Failed to format URL #{original_url.to_s}"
       exception err
+      rendered = "Einen Fehler {#{err.class.name}: #{err.message} @ #{err.backtrace.first}}"
     end
     
     rendered = 'Seite ohne Titel' if rendered.nil?
     return rendered
   end
   
+  def rewrite_url(url)
+    descriptor = @rewriters.check url
+    log "Descriptor for #{url}: #{descriptor.map{|k,v| "[" + k.to_s + " => " + v.to_s + "]"}.join(', ')}"
+    return descriptor
+  end
+  
   def handle_url(url)
     response = nil
     
+    descriptor = rewrite_url url
+    
     begin
-      response, type, code = download_url(URI url)
+      response, type, code = download_url(descriptor[:url], descriptor[:datatype].to_sym)
       
       if code != 200
         return "Eine #{code} Seite"
       end
       
       type = 'Unbekannt' if type.nil? || type.empty?
-      return "MIME-Typ #{type}" unless is_html_mimetype type
+      return "MIME-Typ #{type}" unless type =~ /#{descriptor[:datatype]}/i
     rescue SocketError => err
       return "Eine nicht-existente Domain"
     rescue RuntimeError => err
@@ -127,8 +154,7 @@ class UrlFinder
     end
     
     # 
-    parser = Nokogiri::HTML response
-    return render_title url, parser
+    return render_formatter descriptor, response, url
   end
   
   def read_ogp_data(parser)
@@ -146,9 +172,20 @@ class UrlFinder
     return nil
   end
   
-  def listen(m)
-    urls = URI.extract(m.message, %w(http https))
+  def find_urls(message)
+    # Port part in url_rx intentionally left out. Only ping "public" pages!
+    url_rx = /(https?:\/\/([a-z0-9_.-]+)\/[a-z0-9%._\/?&+=#-]*)/i
+    ignore_domain_rx = /^(?:localhost|[0-9.]+)$/ # Don't ping localhost or plain IP addresses
     
+    message
+      .scan(url_rx) # Find URLs
+      .reject{|pair| pair.last.match ignore_domain_rx} # Ignore hardcoded domains
+      .select{|pair| (@blacklist & get_matchers_for_url(pair.first)).empty? } # Ignore blacklist
+      .map(&:first) # Prettify
+  end
+  
+  def listen(m)
+    urls = find_urls m.message
     return if urls.empty?
     
     log "Found urls #{urls.join ','} in message"

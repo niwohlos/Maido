@@ -1,0 +1,31 @@
+bot:
+  nick: Maido
+  realname: ｡◕‿◕｡
+  server: irc.euirc.net
+  ssl: no
+  #port: 6667
+  #ssl: yes
+  #port: 6697
+  channels:
+    - '#niwohlos'
+    #- '#MaidoTest'
+
+domain:
+  # Don't ping these domains. Auto-ignored are "localhost" and IP addresses.
+  # Blacklist applies on sub-domains too. So blacklisting "bar.baz" also blocks "foo.bar.baz".
+  blacklist:
+    - gov
+    - mil
+  
+  # Rewrite the URLs where pattern 'matches' to 'target', download the file and parse it as
+  # 'datatype'(=html,json,text), and pass that to the formatter as first argument with the
+  # matcher object as second argument.
+  rewrite:
+    - formatter: 4chan
+      datatype: json
+      pattern: 'boards\.4chan\.org\/((\w+)\/(res|thread)\/\d+).*'
+      target: 'a.4cdn.org/\1.json'
+    - formatter: 4chan
+      datatype: json
+      pattern: 'boards\.4chan\.org\/((\w+)\/(res|thread)\/\d+)\S*#p(\d+).*'
+      target: 'a.4cdn.org/\1.json'
