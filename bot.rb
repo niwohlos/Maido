@@ -3,10 +3,29 @@
 # $ bundle exec ruby bot.rb
 
 require 'rubygems'
-require_relative 'plugin_loader'
+require 'cinch'
 require 'yaml'
 
-$config = YAML.load open(File.dirname(__FILE__) + '/config.yml').read
+class ConfigLoader
+  include Cinch::Plugin
+  
+  match 'reload_config'
+  
+  def execute(m)
+    log "Reloading configuration - Triggered by #{m.user.nick}"
+    ConfigLoader.load
+    
+    m.reply "#{m.user.nick}: Konfiguration wurde geladen"
+  end
+  
+  def self.load
+    $config = YAML.load open(File.dirname(__FILE__) + '/config.yml').read
+  end
+  
+end
+
+require_relative 'plugin_loader'
+ConfigLoader.load
 
 # 
 bot = Cinch::Bot.new do

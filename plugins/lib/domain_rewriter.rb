@@ -3,6 +3,7 @@ class DomainRewriter
   attr_accessor :pattern, :target, :datatype, :formatter
   
   DEFAULT_HASH = {
+    'formatter' => nil,
     'datatype' => :html
   }
   
@@ -10,7 +11,7 @@ class DomainRewriter
     @pattern = /#{pattern}/i
     @target = target
     @datatype = datatype.to_sym
-    @formatter = (formatter.empty? ? nil : formatter)
+    @formatter = (formatter.nil? || formatter.empty? ? nil : formatter)
     
     raise "Unknown rewriter datatype #{datatype}" unless [ :html, :json, :plain ].include? @datatype
   end

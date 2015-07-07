@@ -33,4 +33,5 @@ domain:
       datatype: json
       pattern: 'boards\.4chan\.org\/((\w+)\/(res|thread)\/\d+)\S*#p(\d+).*'
       target: 'a.4cdn.org/\1.json'
-    
+    - pattern: 'i\.imgur\.com'
+      target: 'imgur.com'

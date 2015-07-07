@@ -3,10 +3,12 @@ require 'cinch'
 class PluginLoader
   include Cinch::Plugin
   
+  CORE_PLUGINS = [ ConfigLoader, PluginLoader ]
+  
   match 'reload_plugins'
   
   def execute(m)
-    log "Reloading plugins - Triggered by user"
+    log "Reloading plugins - Triggered by #{m.user.nick}"
     
     begin
       list = PluginLoader.load_all
@@ -20,7 +22,7 @@ class PluginLoader
     bot.plugins.unregister_all
     bot.plugins.register_plugins list
     
-    names = (list - [ PluginLoader ]).map{|klass| klass.name }
+    names = (list - CORE_PLUGINS).map{|klass| klass.name }
     m.reply "Neugeladene Plugins: #{names.join ', '}"
   end
   
@@ -45,7 +47,7 @@ class PluginLoader
     end
     
     # Inject self
-    return [ PluginLoader ] + plugins
+    return CORE_PLUGINS + plugins
   end
   
   private
