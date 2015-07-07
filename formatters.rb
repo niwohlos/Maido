@@ -35,9 +35,9 @@ ignore_image = [ :reddit, :voat, :youtube, :facebook ]
     description = ''
     if og['description']
       stripped = og['description'].gsub(/(?:\*\*|''|__)/, '').gsub(/\[([^\]]+)\]\([^)]*\)/, '\1')
-      description = " [#{stripped}]"
+      description = " [#{shorten stripped}]"
     end
-    "#{og['title']}#{shorten description}"
+    "#{og['title']}#{description}"
   end,
   
   # JSON formatters
