@@ -28,7 +28,7 @@ class Taschenrechner
   def sanity_check(str)
     allowed_methods = Math.methods(false).map(&:to_s).join('|')
     allowed_terminals = '([ ()+*\/-])'
-    allowed_digits = '[0-9](?:\.[0-9])|\.[0-9]'
+    allowed_digits = '[0-9]+(?:\.[0-9]+)?|\.[0-9]+'
     
     allowed = /\A#{[allowed_methods, allowed_terminals, allowed_digits].join('|')}\z/
     token = str.split(/([ ()+*\/-])/).map(&:strip).reject(&:empty?)
