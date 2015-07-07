@@ -31,6 +31,15 @@ ignore_image = [ :reddit, :voat, :youtube, :facebook ]
   
   "twitter.com" => Proc.new{|og| "#{og['title'].gsub(/ auf Twitter$/, '')}: #{og['description']}" },
   
+  "reddit.com" => Proc.new do |og|
+    description = ''
+    if og['description']
+      stripped = og['description'].gsub(/(?:\*\*|''|__)/, '').gsub(/\[([^\]]+)\]\([^)]*\)/, '\1')
+      description = " [#{stripped}]"
+    end
+    "#{og['title']}#{shorten description}"
+  end,
+  
   # JSON formatters
   "4chan" => Proc.new do |json, response, descriptor, url|
     uri = URI(url)
