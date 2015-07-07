@@ -123,7 +123,9 @@ class UrlFinder
     end
     
     rendered = 'Seite ohne Titel' if rendered.nil?
-    return rendered
+    cleaned = rendered.gsub(/[\r\n]/, ' ').scrub(' ').strip
+    return nil if cleaned.empty?
+    return cleaned
   end
   
   def rewrite_url(url)

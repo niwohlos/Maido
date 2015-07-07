@@ -17,7 +17,7 @@ ignore_image = [ :reddit, :voat, :youtube, :facebook ]
   # Default matcher for HTML
   "" => Proc.new do |og, title|
     unless og.nil?
-      site = og['site_name'].downcase.to_sym
+      site = og['site_name'].downcase.to_sym unless og['site_name'].nil?
       title = og['title']
       title << " [#{shorten og['description']}]" if og['description'] && !ignore_description.include?(site)
       title << " -> #{og['image']}" if og['image'] && !ignore_image.include?(site)
