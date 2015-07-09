@@ -8,6 +8,7 @@ require 'uri'
 require_relative 'lib/domain_rewriter'
 require_relative 'lib/blacklist'
 require_relative 'lib/helper'
+require_relative 'lib/recent'
 
 class UrlFinder
   include Cinch::Plugin
@@ -28,6 +29,7 @@ class UrlFinder
     
     @formatters = eval open('formatters.rb').read
     @rewriters = DomainRewriter.many_from_array($config['domain']['rewrite'])
+    @recent = Recent.new
   end
   
   def do_get_request(url, datatype)
@@ -184,12 +186,15 @@ class UrlFinder
     message
       .scan(url_rx) # Find URLs
       .reject{|pair| pair.last.match ignore_domain_rx} # Ignore hardcoded domains
-      .reject{|pair| Blacklist.instance.blacklisted? pair.last } # Ignore blacklist
+      .reject{|pair| Blacklist.instance.blacklisted? pair.first} # Ignore blacklist
       .map(&:first) # Prettify
   end
   
   def listen(m)
-    urls = find_urls m.message
+    # Find URLs, but ignore recently posted URLs
+    urls = @recent.remove_recent_urls find_urls(m.message)
+    @recent.add_recent_urls urls
+    
     return if urls.empty?
     
     log "Found urls #{urls.join ','} in message"
