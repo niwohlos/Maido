@@ -15,12 +15,6 @@ ignored_nicks:
   - ytpeek
 
 domain:
-  # Don't ping these domains. Auto-ignored are "localhost" and IP addresses.
-  # Blacklist applies on sub-domains too. So blacklisting "bar.baz" also blocks "foo.bar.baz".
-  blacklist:
-    - gov
-    - mil
-  
   # Rewrite the URLs where pattern 'matches' to 'target', download the file and parse it as
   # 'datatype'(=html,json,text), and pass that to the formatter as first argument with the
   # matcher object as second argument.
