@@ -4,10 +4,14 @@ require 'nokogiri'
 require 'cinch'
 require 'json'
 require 'uri'
+
 require_relative 'lib/domain_rewriter'
+require_relative 'lib/blacklist'
+require_relative 'lib/helper'
 
 class UrlFinder
   include Cinch::Plugin
+  include Helper
   
   MAX_REDIRECTS = 3
   
@@ -23,7 +27,6 @@ class UrlFinder
     
     @formatters = eval open('formatters.rb').read
     @rewriters = DomainRewriter.many_from_array($config['domain']['rewrite'])
-    @blacklist = $config['domain']['blacklist']
   end
   
   def do_get_request(url, datatype)
@@ -78,11 +81,6 @@ class UrlFinder
     #File.open("download.log", "w"){|f| f.write data } ## DEBUG
     
     return [ data, type, code ]
-  end
-  
-  def get_matchers_for_url(url)
-    host = URI(url).host
-    (host.count('.') + 2).times.map{|i| host.split(/(?<=\.)/)[i..-1].join}
   end
   
   def get_formatter(matchers)
@@ -185,7 +183,7 @@ class UrlFinder
     message
       .scan(url_rx) # Find URLs
       .reject{|pair| pair.last.match ignore_domain_rx} # Ignore hardcoded domains
-      .select{|pair| (@blacklist & get_matchers_for_url(pair.first)).empty? } # Ignore blacklist
+      .reject{|pair| Blacklist.instance.blacklisted? pair.last } # Ignore blacklist
       .map(&:first) # Prettify
   end
   

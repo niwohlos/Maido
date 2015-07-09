@@ -13,8 +13,10 @@ class PluginLoader
     begin
       list = PluginLoader.load_all
     rescue StandardError => err
-      log "Failed with #{err.name}"
-      m.reply "Das gab einen #{err.name} bei #{err.backtrace.first}"
+      error "Failed with #{err.class.name}: #{err.message}"
+      error "Backtrace:"
+      error "#{err.backtrace.join("\n")}"
+      m.reply "Das gab einen #{err.class.name} mit '#{err.message}' bei #{err.backtrace.first}"
       raise err
     end
     
