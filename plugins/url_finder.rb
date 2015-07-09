@@ -21,6 +21,7 @@ class UrlFinder
   }
   
   listen_to :channel
+  match /ogp ([^ ]+)/, method: :ogp_lookup
   
   def initialize(*args)
     super
@@ -197,6 +198,36 @@ class UrlFinder
     log "Titles: #{responses.join ', '}"
     
     m.reply "#{m.user.nick} präsentiert Ihnen heute: #{responses.join ', '}" unless responses.empty?
+  end
+  
+  def ogp_lookup(m, url)
+    log "Pinging #{url}"
+    
+    descriptor = rewrite_url url
+    m.reply "#{m.user.nick}: Eingegebene URL wurde umgeschrieben -> #{descriptor[:url]}" if descriptor[:url] != url
+    
+    # Load
+    response, type, code = download_url(descriptor[:url], :html)
+    return m.reply "#{m.user.nick}: Das gab einen Fehler #{code}" if code != 200
+    
+    # Parse
+    parser = Nokogiri::HTML response
+    og = read_ogp_data(parser)
+    title = read_title(parser, url)
+    
+    og_str = og.empty? ? '<Keine>' : og.map{|k, v| "#{k}: '#{v}'"}.join(', ')
+    
+    # 
+    begin
+      formatted = render_formatter(descriptor, response, url)
+    rescue RuntimeError => err
+      formatted = "Fehler #{err.class}: #{err.message} @ #{err.backtrace.first}"
+    end
+    
+    # 
+    m.reply "#{m.user.nick}: Seitentitel ist „#{title || '<Leer>'}“, OGP Daten: #{og_str}"
+    m.reply "#{m.user.nick}: Formatiert mit \"#{descriptor[:formatter]}\": #{formatted}"
+    
   end
   
 end
