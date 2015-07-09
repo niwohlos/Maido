@@ -4,8 +4,8 @@ def shorten(string, max = 60)
 end
 
 # Matches og['site_name'].downcase for the default matcher
-ignore_description = [ :imgur, :voat ]
-ignore_image = [ :reddit, :voat, :youtube, :facebook ]
+blacklist_description = [ :imgur, :voat ]
+whitelist_image = [ :imgur ]
 
 # All formatters receive the following arguments
 # (... , plain response body, formatter descriptor, original url)
@@ -19,8 +19,8 @@ ignore_image = [ :reddit, :voat, :youtube, :facebook ]
     unless og.nil?
       site = og['site_name'].downcase.to_sym unless og['site_name'].nil?
       title = og['title']
-      title << " [#{shorten og['description']}]" if og['description'] && !ignore_description.include?(site)
-      title << " -> #{og['image']}" if og['image'] && !ignore_image.include?(site)
+      title << " [#{shorten og['description']}]" if og['description'] && !blacklist_description.include?(site)
+      title << " -> #{og['image']}" if og['image'] && whitelist_image.include?(site)
     end
     
     title
