@@ -9,6 +9,7 @@ class SperrlistenKontrolle
   match /blacklisted ([^ ]+)/, method: :blacklisted?
   match /blacklist ([^ ]+)/, method: :blacklist
   match /unblacklist ([^ ]+)/, method: :unblacklist
+  match /reload_blacklist/, method: :reload
   
   def blacklisted?(m, url)
     url = "http://#{url}" unless URI(url).host
@@ -43,6 +44,11 @@ class SperrlistenKontrolle
       m.reply "#{m.user.nick}: #{domain} ist nicht auf der Sperrliste"
     end
     
+  end
+  
+  def reload(m)
+    Blacklist.instance.reload
+    m.reply "#{m.user.nick}: Sperrliste neugeladen mit #{Blacklist.instance.length} Einträgen"
   end
   
 end

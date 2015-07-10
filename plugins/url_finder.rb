@@ -162,7 +162,7 @@ class UrlFinder
   
   def read_ogp_data(parser)
     coder = HTMLEntities.new
-    og = parser.css('meta[property^="og:"]').map{ |meta| [ meta['property'].slice(3, 100), coder.decode(meta['content']) ] }.to_h
+    og = parser.css('meta[property^="og:"]').map{ |meta| [ meta['property'].slice(3, 100), coder.decode(meta['content']).strip ] }.to_h
     log "OGP Data: " + og.map{ |k,v| "#{k}: #{v}" }.join(', ')
     
     return nil if og.empty?
@@ -175,7 +175,8 @@ class UrlFinder
     
     matchers = get_matchers_for_url url # Try to remove trailing service name with other garbage characters before it
     matchers << matchers[-2].split('.').first
-    return tag.children[0].to_s.gsub /[^a-z0-9.]*#{matchers.map{|m| Regexp.escape m}.join '|'}$/i, ''
+    title = tag.children[0].to_s.gsub /[^a-z0-9.]*#{matchers.map{|m| Regexp.escape m}.join '|'}$/i, ''
+    return title.gsub(/[\r\n]/, '').strip
   end
   
   def find_urls(message)
@@ -217,7 +218,7 @@ class UrlFinder
     
     # Parse
     parser = Nokogiri::HTML response
-    og = read_ogp_data(parser)
+    og = read_ogp_data(parser) || {}
     title = read_title(parser, url)
     
     og_str = og.empty? ? '<Keine>' : og.map{|k, v| "#{k}: '#{v}'"}.join(', ')

@@ -15,7 +15,7 @@ class Blacklist
   
   def reload
     begin
-      @list = YAML.parse open(@file_path).read
+      @list = YAML.load open(@file_path).read
       puts "Read blacklist form #{@file_path}"
     rescue Errno::ENOENT
       puts "Blacklist file #{@file_path} not found - Using empty blacklist"
